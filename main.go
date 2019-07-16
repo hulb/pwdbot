@@ -325,7 +325,7 @@ func main() {
 		}
 
 		res := strings.Join(allAccountNames, "\n")
-		b.Send(m.Sender, res)
+		b.Send(m.Sender, res, tb.ModeMarkdown)
 		log.Println("list accounts")
 	})
 
