@@ -339,7 +339,7 @@ func GetCurrentDirectory() string {
 	}
 	currentPath := strings.Replace(dir, "\\", "/", -1)
 
-	return currentPath + "/"
+	return currentPath + "/data/"
 }
 
 func ReadFile(path string) []byte {
