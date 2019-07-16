@@ -1,5 +1,5 @@
 ##### pwdbot
-pwdbot is a telegram bot for manage my password.Thanks to [telebot](https://github.com/tucnak/telebot), it make me very easy to make a telegram bot.pwdbot just save
+pwdbot is a telegram bot for manage my password.Thanks to [telebot](https://github.com/tucnak/telebot), it make me very easy to make a telegram bot.pwdbot just save account info(eg. username, password etc.) in plaintext, encryption is needed.
 
 ##### commands available
 - `/new` `length` return a random string in specified length
