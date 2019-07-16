@@ -1,4 +1,4 @@
-module passwd_bot
+module pwdbot
 
 go 1.12
 
