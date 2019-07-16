@@ -162,7 +162,7 @@ func main() {
 		accounts := []Account{}
 		if err := json.Unmarshal(f, &accounts); err == nil {
 			for _, a := range accounts {
-				if a.Name == accountName {
+				if a.Name == accountName && a.Belong2.ID == m.Sender.ID {
 					exists = true
 					b.Send(m.Sender, fmt.Sprintf("account `%s` already exists, just update it", a.Name), tb.ModeMarkdown)
 				}
