@@ -9,6 +9,6 @@ pwdbot is a telegram bot for manage my password.Thanks to [telebot](https://gith
 - `/list` list all accounts
 
 ##### todo
-- [] account data encrypt
-- [] /rm delete the specified account
-- [] /search fuzzy search 
+- [ ] account data encrypt
+- [ ] /rm delete the specified account
+- [ ] /search fuzzy search 
