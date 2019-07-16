@@ -59,6 +59,11 @@ type ChangeHistory struct {
 
 func main() {
 	if !Exists(GetCurrentDirectory() + FILENAME) {
+		err := os.Mkdir(GetCurrentDirectory(), os.ModePerm)
+		if err != nil {
+			fmt.Printf("mkdir failed![%v]\n", err)
+		}
+
 		f, err := os.Create(GetCurrentDirectory() + FILENAME)
 		if err != nil {
 			log.Println(err.Error())
