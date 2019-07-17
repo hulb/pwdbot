@@ -20,13 +20,6 @@ func init() {
 	if BOTTOKEN == "" {
 		log.Fatalln("bot token required.exit")
 	}
-
-	FILENAME = os.Getenv("FILENAME")
-	if FILENAME == "" {
-		FILENAME = "pwdbotpwd.pwd"
-	}
-
-	log.Println("user default file name: ", FILENAME)
 }
 
 func main() {

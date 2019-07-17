@@ -85,6 +85,8 @@ func save(m *tb.Message) {
 	newAccount := structs.Account{Name: accountName, PWD: pwd, Info: make(map[string]string)}
 	userData.Accounts[accountName] = newAccount
 	userData.Save()
+	log.Println("save account: ", accountName)
+	structs.UniqBot.Send(m.Sender, "saved account", tb.ModeMarkdown)
 }
 
 // `/update github [username::hulb]`
@@ -135,6 +137,7 @@ func update(m *tb.Message) {
 			account.Info[updateKey] = updateValue
 		}
 
+		userData.Accounts[accountName] = account
 		userData.Save()
 		structs.UniqBot.Send(m.Sender, "updated")
 		log.Println("update account: ", accountName)
