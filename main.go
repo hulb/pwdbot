@@ -55,4 +55,6 @@ func main() {
 	for cmd, handlerFunc := range handlers.CmdHandler {
 		b.Handle(cmd, handlerFunc)
 	}
+
+	b.Start()
 }
