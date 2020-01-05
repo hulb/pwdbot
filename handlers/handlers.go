@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -25,6 +27,8 @@ func init() {
 	CmdHandler["/saerch"] = search
 	CmdHandler["/list"] = list
 	CmdHandler["/rm"] = rm
+	CmdHandler["/addtotp"] = addTOTP
+	CmdHandler["/gettotp"] = getTOTP
 }
 
 func start(m *tb.Message) {
@@ -37,6 +41,8 @@ func start(m *tb.Message) {
 		"- /get `[account name]` get detail of the account",
 		"- /search `[search key]` fuzzy search accounts that match the key",
 		"- /rm `[account name]` delete the account",
+		"- /addtotp `[account name]` add TOTP key for the account",
+		"- /gettotp `[account name]` get a TOTP code for the account",
 		"- /list list all accounts",
 	}
 	_, err := structs.UniqBot.Send(m.Sender, strings.Join(help, "\n\n"), tb.ModeMarkdown)
@@ -149,6 +155,13 @@ func update(m *tb.Message) {
 			account.Info[updateKey] = updateValue
 		}
 
+		// keep old value as history
+		if len(history.Old) > 0 {
+			allHistory := userData.Accounts[accountName].Hisotry
+			allHistory = append(allHistory, history)
+			account.Hisotry = allHistory
+		}
+
 		userData.Accounts[accountName] = account
 		userData.Save()
 		structs.UniqBot.Send(m.Sender, fmt.Sprintf("Property `%s` of account `%s` has been updated.", updateKey, accountName), tb.ModeMarkdown)
@@ -169,7 +182,7 @@ func get(m *tb.Message) {
 
 	accountName := strings.Replace(splitArr[1], " ", "", -1)
 	if accountName == "" {
-		structs.UniqBot.Send(m.Sender, "invalid update key or value")
+		structs.UniqBot.Send(m.Sender, "invalid account name")
 		return
 	}
 
@@ -282,4 +295,77 @@ func rm(m *tb.Message) {
 	}
 
 	structs.UniqBot.Send(m.Sender, fmt.Sprintf("Account `%s` has been deleted.", accountName), tb.ModeMarkdown)
+}
+
+// `/addtotp github xxx`
+func addTOTP(m *tb.Message) {
+	splitArr := strings.Split(m.Text, " ")
+	if len(splitArr) != 3 {
+		structs.UniqBot.Send(m.Sender,
+			"Incorrect format of command /addtotp.\nYou should use it like: /addtotp `[account name]` `[totp key uri]`.\nA blank is between `[account name]` and `[totp key uri]`.",
+			tb.ModeMarkdown)
+		return
+	}
+
+	accountName := strings.Replace(splitArr[1], " ", "", -1)
+	totpKeyURI := strings.Replace(splitArr[2], " ", "", -1)
+
+	if accountName == "" || totpKeyURI == "" {
+		structs.UniqBot.Send(m.Sender, "invalid account name or totp key uri")
+		return
+	}
+
+	userData := structs.GetUserData(m.Sender)
+	if account, ok := userData.Accounts[accountName]; ok {
+		if account.KeyUri != "" {
+			history := structs.ChangeHistory{ChangeTime: time.Now(), Old: make(map[string]string)}
+			history.Old["keyuri"] = account.KeyUri
+			account.Hisotry = append(account.Hisotry, history)
+		}
+
+		account.KeyUri = totpKeyURI
+		userData.Accounts[accountName] = account
+		userData.Save()
+
+		structs.UniqBot.Send(m.Sender, fmt.Sprintf("The totp key URI of account `%s` has been updated.", accountName), tb.ModeMarkdown)
+		log.Println(fmt.Sprintf("The totp key URI of account `%s` has been updated.", accountName))
+		return
+	}
+
+	structs.UniqBot.Send(m.Sender, "Account not found")
+}
+
+// `/gettotp github`
+func getTOTP(m *tb.Message) {
+	splitArr := strings.Split(m.Text, " ")
+	if len(splitArr) != 2 {
+		structs.UniqBot.Send(m.Sender, "Incorrect format of command /gettotp.\nYou should use it like: /gettotp `[account name]`\n", tb.ModeMarkdown)
+		return
+	}
+
+	accountName := strings.Replace(splitArr[1], " ", "", -1)
+	if accountName == "" {
+		structs.UniqBot.Send(m.Sender, "invalid account name")
+		return
+	}
+
+	userData := structs.GetUserData(m.Sender)
+	if account, ok := userData.Accounts[accountName]; ok {
+		if otpKey, err := otp.NewKeyFromURL(account.KeyUri); err != nil {
+			log.Printf("Error occures when trying to get OTP key of account %s, err: %s\n", accountName, err)
+			structs.UniqBot.Send(m.Sender, "Get TOTP code fail! Please try to reset the TOTP key URI of the account.", tb.ModeMarkdown)
+			return
+		} else {
+			if code, err := totp.GenerateCode(otpKey.Secret(), time.Now()); err != nil {
+				log.Printf("Error occures when trying to get TOTP code of account %s, err: %s\n", accountName, err)
+				structs.UniqBot.Send(m.Sender, "Get TOTP code fail! Please try to reset the TOTP key URI of the account.", tb.ModeMarkdown)
+				return
+			} else {
+				structs.UniqBot.Send(m.Sender, fmt.Sprintf("Code below is expired in 30s:\n\n\t`%s`", code), tb.ModeMarkdown)
+				return
+			}
+		}
+	}
+
+	structs.UniqBot.Send(m.Sender, "Account not found, save it first.")
 }

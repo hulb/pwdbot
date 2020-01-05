@@ -81,6 +81,7 @@ type Account struct {
 	PWD      string            `json:"pwd"`
 	UserName string            `json:"username"`
 	Email    string            `json:"email"`
+	KeyUri   string            `json:"keyuri"`
 	Info     map[string]string `json:"info"`
 	Hisotry  []ChangeHistory   `json:"history"`
 }

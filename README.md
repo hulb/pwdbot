@@ -10,6 +10,8 @@
 - `/get` `[account name]` get detail of the account
 - `/search` `[search key]` fuzzy search accounts that match the key
 - `/rm` `[account name]` delete the account
+- `/addtotp` `[account name]` add TOTP key for the account
+- `/gettotp` `[account name]` get a TOTP code for the account
 - `/list` list all accounts
 
 ##### TODO
