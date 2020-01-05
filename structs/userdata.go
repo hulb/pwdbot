@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"pwdbot/utils"
+	"strings"
 	"time"
 
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -82,6 +83,21 @@ type Account struct {
 	Email    string            `json:"email"`
 	Info     map[string]string `json:"info"`
 	Hisotry  []ChangeHistory   `json:"history"`
+}
+
+func (account Account) String() string {
+	res := []string{
+		fmt.Sprintf("- name: `%s`", account.Name),
+		fmt.Sprintf("- username: `%s`", account.UserName),
+		fmt.Sprintf("- password: `%s`", account.PWD),
+		fmt.Sprintf("- email: `%s`", account.Email),
+	}
+
+	for k, v := range account.Info {
+		res = append(res, fmt.Sprintf("- %s: `%s`", k, v))
+	}
+
+	return strings.Join(res, "\n")
 }
 
 type ChangeHistory struct {

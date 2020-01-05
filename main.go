@@ -18,7 +18,8 @@ var (
 func init() {
 	BOTTOKEN = os.Getenv("BOTTOKEN")
 	if BOTTOKEN == "" {
-		log.Fatalln("bot token required.exit")
+		BOTTOKEN = "813786118:AAECHlRorfYVom2qH7UYgvv_FLeAbbcsTUc"
+		// log.Fatalln("bot token required.exit")
 	}
 }
 
@@ -44,10 +45,12 @@ func main() {
 	}
 
 	structs.RegisterBot(b)
+	log.Println("bot registered")
 
 	for cmd, handlerFunc := range handlers.CmdHandler {
 		b.Handle(cmd, handlerFunc)
 	}
 
+	log.Println("bot listening...")
 	b.Start()
 }

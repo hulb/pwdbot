@@ -22,17 +22,21 @@ func init() {
 	CmdHandler["/update"] = update
 	CmdHandler["/get"] = get
 	CmdHandler["/search"] = search
+	CmdHandler["/saerch"] = search
 	CmdHandler["/list"] = list
+	CmdHandler["/rm"] = rm
 }
 
 func start(m *tb.Message) {
 	help := []string{
 		"Hellow, " + m.Sender.Username + "",
 		"This is a password management bot.Commands below are now available:",
-		"- /new `length` return a random string in specified length",
-		"- /save `password` `account name` save password of the account",
-		"- /update `acount name` `property name``::``property value` update the specified property of the account name",
-		"- /get `account name` get detail of the account",
+		"- /new `[length](optional)` return a random string in specified length",
+		"- /save `[password]` `[account name]` save password of the account",
+		"- /update `[acount name]``.``[property name]``=``[value]` update the specified property of the account name",
+		"- /get `[account name]` get detail of the account",
+		"- /search `[search key]` fuzzy search accounts that match the key",
+		"- /rm `[account name]` delete the account",
 		"- /list list all accounts",
 	}
 	_, err := structs.UniqBot.Send(m.Sender, strings.Join(help, "\n\n"), tb.ModeMarkdown)
@@ -52,7 +56,7 @@ func new(m *tb.Message) {
 		}
 	}
 
-	pwd := fmt.Sprintf("new passwd:\n\n\t`%s`", utils.Generator(length))
+	pwd := fmt.Sprintf("I generate a random password for you:\n\n\t`%s`", utils.Generator(length))
 	msg, err := structs.UniqBot.Send(m.Sender, pwd, tb.ModeMarkdown)
 	if err != nil {
 		log.Println(msg)
@@ -64,7 +68,9 @@ func new(m *tb.Message) {
 func save(m *tb.Message) {
 	splitArr := strings.Split(m.Text, " ")
 	if len(splitArr) != 3 {
-		structs.UniqBot.Send(m.Sender, "wrong format of parameter")
+		structs.UniqBot.Send(m.Sender,
+			"Incorrect format of command /save.\nYou should use it like: /save `[password]` `[account name]`.\nA blank is between `[password]` and `[account name]`.\nFor example, /save `mypassword` `google`",
+			tb.ModeMarkdown)
 		return
 	}
 
@@ -72,42 +78,48 @@ func save(m *tb.Message) {
 	accountName := strings.Replace(splitArr[2], " ", "", -1)
 
 	if pwd == "" || accountName == "" {
-		structs.UniqBot.Send(m.Sender, "invalid update pwd or accountName")
+		structs.UniqBot.Send(m.Sender, "invalid pwd or accountName")
+		return
+	}
+
+	if strings.Contains(accountName, ".") {
+		structs.UniqBot.Send(m.Sender, "Invalid account name. The character `.` can not exists in account name.", tb.ModeMarkdown)
 		return
 	}
 
 	userData := structs.GetUserData(m.Sender)
 	if _, ok := userData.Accounts[accountName]; ok && len(userData.Accounts) > 0 {
-		structs.UniqBot.Send(m.Sender, fmt.Sprintf("account `%s` already exists, just update it", accountName), tb.ModeMarkdown)
+		structs.UniqBot.Send(m.Sender, fmt.Sprintf("Account `%s` already exists! You can just use /update ot update it or /get to overview it.", accountName), tb.ModeMarkdown)
 		return
 	}
 
 	newAccount := structs.Account{Name: accountName, PWD: pwd, Info: make(map[string]string)}
 	userData.Accounts[accountName] = newAccount
 	userData.Save()
-	log.Println("save account: ", accountName)
-	structs.UniqBot.Send(m.Sender, "saved account", tb.ModeMarkdown)
+	log.Printf("An account named %s has been saved.", accountName)
+	structs.UniqBot.Send(m.Sender, fmt.Sprintf("An account named `%s` has been saved.\nYou can use /get to overview it.", accountName), tb.ModeMarkdown)
 }
 
-// `/update github [username::hulb]`
+// `/update github.username=hulb`
 func update(m *tb.Message) {
 	splitArr := strings.Split(m.Text, " ")
-	if len(splitArr) != 3 {
+	if len(splitArr) != 2 {
 		structs.UniqBot.Send(m.Sender, "wrong format of parameter")
 		return
 	}
 
-	accountName := strings.Replace(splitArr[1], " ", "", -1)
-	updateInfo := strings.Replace(splitArr[2], " ", "", -1)
-	splitArrUpdate := strings.Split(updateInfo, "::")
-	if len(splitArrUpdate) != 2 {
-		structs.UniqBot.Send(m.Sender, "wrong format of update info")
+	params := strings.Replace(splitArr[1], " ", "", -1)
+	paramsArr := strings.Split(params, ".")
+	accountName := paramsArr[0]
+
+	propertyArr := strings.Split(paramsArr[1], "=")
+	if len(propertyArr) != 2 {
+		structs.UniqBot.Send(m.Sender, "update parameters should in format like `[property]``=``[value]`", tb.ModeMarkdown)
 		return
 	}
 
-	updateKey := splitArrUpdate[0]
-	updateValue := splitArrUpdate[1]
-
+	updateKey := propertyArr[0]
+	updateValue := propertyArr[1]
 	if updateKey == "" || updateValue == "" {
 		structs.UniqBot.Send(m.Sender, "invalid update key or value")
 		return
@@ -139,8 +151,8 @@ func update(m *tb.Message) {
 
 		userData.Accounts[accountName] = account
 		userData.Save()
-		structs.UniqBot.Send(m.Sender, "updated")
-		log.Println("update account: ", accountName)
+		structs.UniqBot.Send(m.Sender, fmt.Sprintf("Property `%s` of account `%s` has been updated.", updateKey, accountName), tb.ModeMarkdown)
+		log.Println(fmt.Sprintf("Property `%s` of account `%s` has been updated.", updateKey, accountName))
 		return
 	}
 
@@ -151,7 +163,7 @@ func update(m *tb.Message) {
 func get(m *tb.Message) {
 	splitArr := strings.Split(m.Text, " ")
 	if len(splitArr) != 2 {
-		structs.UniqBot.Send(m.Sender, "wrong format of parameter")
+		structs.UniqBot.Send(m.Sender, "Incorrect format of command /get.\nYou should use it like: /get `[account name]`\n", tb.ModeMarkdown)
 		return
 	}
 
@@ -163,36 +175,25 @@ func get(m *tb.Message) {
 
 	userData := structs.GetUserData(m.Sender)
 	if account, ok := userData.Accounts[accountName]; ok {
-		res := []string{
-			fmt.Sprintf("- name: `%s`", account.Name),
-			fmt.Sprintf("- username: `%s`", account.UserName),
-			fmt.Sprintf("- password: `%s`", account.PWD),
-			fmt.Sprintf("- email: `%s`", account.Email),
-		}
-
-		for k, v := range account.Info {
-			res = append(res, fmt.Sprintf("- %s: `%s`", k, v))
-		}
-
-		structs.UniqBot.Send(m.Sender, strings.Join(res, "\n"), tb.ModeMarkdown)
+		structs.UniqBot.Send(m.Sender, account.String(), tb.ModeMarkdown)
 		log.Println("query account: ", accountName)
 		return
 	}
 
-	structs.UniqBot.Send(m.Sender, "account not found, save it first.")
+	structs.UniqBot.Send(m.Sender, "Account not found, save it first.")
 }
 
 // `/search key`
 func search(m *tb.Message) {
 	splitArr := strings.Split(m.Text, " ")
 	if len(splitArr) != 2 {
-		structs.UniqBot.Send(m.Sender, "wrong format of parameter")
+		structs.UniqBot.Send(m.Sender, "Incorrect format of command /search.\nYou should use it like: /search `[search key]`\n")
 		return
 	}
 
 	searchKey := strings.Replace(splitArr[1], " ", "", -1)
 	if searchKey == "" {
-		structs.UniqBot.Send(m.Sender, "invalid serach key")
+		structs.UniqBot.Send(m.Sender, "Invalid serach key")
 		return
 	}
 
@@ -225,17 +226,20 @@ func search(m *tb.Message) {
 		}
 	}
 
-	if len(matchAccountName) > 0 {
+	switch len(matchAccountName) {
+	case 0:
+		structs.UniqBot.Send(m.Sender, "No account found")
+	case 1:
+		account := userData.Accounts[matchAccountName[0]]
+		structs.UniqBot.Send(m.Sender, account.String(), tb.ModeMarkdown)
+	default:
 		findAccountNames := []string{}
 		for _, name := range matchAccountName {
 			findAccountNames = append(findAccountNames, fmt.Sprintf("-\t`%s`", name))
 		}
 
 		structs.UniqBot.Send(m.Sender, strings.Join(findAccountNames, "\n\n"), tb.ModeMarkdown)
-		return
 	}
-
-	structs.UniqBot.Send(m.Sender, "not found related account")
 }
 
 // `/list`
@@ -246,6 +250,10 @@ func list(m *tb.Message) {
 		allAccountNames = append(allAccountNames, fmt.Sprintf("- `%s`\n", account.Name))
 	}
 
+	if len(allAccountNames) == 0 {
+		structs.UniqBot.Send(m.Sender, "No account found for current user, you can /save one first.", tb.ModeMarkdown)
+		return
+	}
 	res := strings.Join(allAccountNames, "\n")
 	structs.UniqBot.Send(m.Sender, res, tb.ModeMarkdown)
 	log.Println("list accounts of user ", userData.User.Username)
@@ -254,5 +262,24 @@ func list(m *tb.Message) {
 
 // `/rm github`
 func rm(m *tb.Message) {
+	splitArr := strings.Split(m.Text, " ")
+	if len(splitArr) != 2 {
+		structs.UniqBot.Send(m.Sender, "Incorrect format of command /rm.\nYou should use it like: /rm `[account name]`\n", tb.ModeMarkdown)
+		return
+	}
 
+	accountName := strings.Replace(splitArr[1], " ", "", -1)
+	if accountName == "" {
+		structs.UniqBot.Send(m.Sender, "Invalid account name")
+		return
+	}
+
+	userData := structs.GetUserData(m.Sender)
+	if _, ok := userData.Accounts[accountName]; ok {
+		delete(userData.Accounts, accountName)
+		userData.Save()
+		log.Println(fmt.Sprintf("Account %s has been deleted.", accountName))
+	}
+
+	structs.UniqBot.Send(m.Sender, fmt.Sprintf("Account `%s` has been deleted.", accountName), tb.ModeMarkdown)
 }
