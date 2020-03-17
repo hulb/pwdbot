@@ -118,7 +118,8 @@ func update(m *tb.Message) {
 	paramsArr := strings.Split(params, ".")
 	accountName := paramsArr[0]
 
-	propertyArr := strings.Split(paramsArr[1], "=")
+	updateParam := strings.Join(paramsArr[1:], ".")
+	propertyArr := strings.Split(updateParam, "=")
 	if len(propertyArr) != 2 {
 		structs.UniqBot.Send(m.Sender, "update parameters should in format like `[property]``=``[value]`", tb.ModeMarkdown)
 		return
